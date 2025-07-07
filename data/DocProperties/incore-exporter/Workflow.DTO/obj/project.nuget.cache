@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "Co1J1HdpvBU=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\sergiy.kolosov\\source\\repos\\incore-exporter\\Workflow.DTO\\Workflow.DTO.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\sergiy.kolosov\\.nuget\\packages\\incore.common.documentation\\8.3.3\\incore.common.documentation.8.3.3.nupkg.sha512",
+    "C:\\Users\\sergiy.kolosov\\.nuget\\packages\\protobuf-net\\3.2.30\\protobuf-net.3.2.30.nupkg.sha512",
+    "C:\\Users\\sergiy.kolosov\\.nuget\\packages\\protobuf-net.core\\3.2.30\\protobuf-net.core.3.2.30.nupkg.sha512",
+    "C:\\Users\\sergiy.kolosov\\.nuget\\packages\\system.collections.immutable\\7.0.0\\system.collections.immutable.7.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

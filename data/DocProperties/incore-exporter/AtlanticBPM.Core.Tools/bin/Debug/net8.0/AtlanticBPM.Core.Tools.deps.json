@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "AtlanticBPM.Core.Tools/1.0.0": {
+        "dependencies": {
+          "Irony": "1.5.1"
+        },
+        "runtime": {
+          "AtlanticBPM.Core.Tools.dll": {}
+        }
+      },
+      "Irony/1.5.1": {
+        "runtime": {
+          "lib/netstandard2.0/Irony.dll": {
+            "assemblyVersion": "1.1.0.0",
+            "fileVersion": "1.1.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "AtlanticBPM.Core.Tools/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Irony/1.5.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ElTkK+E8NZW5VrFFIkj7SuYe0oOFWxNHkWLCP+6krccGu5cjCggwH2tfunnyYezhJdlNudBSw/DHsAv0Z2OX7A==",
+      "path": "irony/1.5.1",
+      "hashPath": "irony.1.5.1.nupkg.sha512"
+    }
+  }
+}

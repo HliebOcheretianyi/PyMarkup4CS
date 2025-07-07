@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "RpJsFtCB1jk=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\sergiy.kolosov\\source\\repos\\incore-exporter\\AtlanticBPM.Core.Tools\\AtlanticBPM.Core.Tools.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\sergiy.kolosov\\.nuget\\packages\\irony\\1.5.1\\irony.1.5.1.nupkg.sha512"
+  ],
+  "logs": []
+}

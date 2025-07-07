@@ -1,0 +1,12 @@
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\bin\Debug\net8.0\AtlanticBPM.Core.Tools.deps.json
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\bin\Debug\net8.0\AtlanticBPM.Core.Tools.dll
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\bin\Debug\net8.0\AtlanticBPM.Core.Tools.pdb
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\AtlanticBPM.Core.Tools.csproj.AssemblyReference.cache
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\AtlanticBPM.Core.Tools.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\AtlanticBPM.Core.Tools.AssemblyInfoInputs.cache
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\AtlanticBPM.Core.Tools.AssemblyInfo.cs
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\AtlanticBPM.Core.Tools.csproj.CoreCompileInputs.cache
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\AtlanticBPM.Core.Tools.dll
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\refint\AtlanticBPM.Core.Tools.dll
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\AtlanticBPM.Core.Tools.pdb
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\AtlanticBPM.Core.Tools\obj\Debug\net8.0\ref\AtlanticBPM.Core.Tools.dll

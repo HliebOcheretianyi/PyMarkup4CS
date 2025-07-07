@@ -1,0 +1,12 @@
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\Workflow.DTO.csproj.AssemblyReference.cache
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\Workflow.DTO.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\Workflow.DTO.AssemblyInfoInputs.cache
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\Workflow.DTO.AssemblyInfo.cs
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\Workflow.DTO.csproj.CoreCompileInputs.cache
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\bin\Debug\net8.0\Workflow.DTO.deps.json
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\bin\Debug\net8.0\Workflow.DTO.dll
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\bin\Debug\net8.0\Workflow.DTO.pdb
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\Workflow.DTO.dll
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\refint\Workflow.DTO.dll
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\Workflow.DTO.pdb
+C:\Users\sergiy.kolosov\source\repos\incore-exporter\Workflow.DTO\obj\Debug\net8.0\ref\Workflow.DTO.dll
