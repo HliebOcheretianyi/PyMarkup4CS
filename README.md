@@ -15,7 +15,7 @@ PyMarkup4CS is a generational program designed to analyze and extract markup inf
 
 ## Prerequisites
 
-- Python 3.x
+- Python 3.10
 - Ollama installed on your system
 - Sufficient disk space for AI models (approximately 10 GB)
 - Sufficien RAM (at least 8 GB)
