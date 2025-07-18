@@ -14,7 +14,7 @@ PyMarkup4CS is a generational program designed to analyze and extract markup inf
 - Jupyter notebook workflow for step-by-step processing
 
 ## Prerequisites
-
+- Pytorch with CUDA if you want finetuning
 - Python 3.10
 - Ollama installed on your system
 - Sufficient disk space for AI models (approximately 10 GB)
@@ -26,12 +26,15 @@ PyMarkup4CS is a generational program designed to analyze and extract markup inf
    ```bash
    pip install -r requirements.txt
    ```
-
-2. **Install Ollama:**
+2. **PyTorch CUDA**
+   ````bash
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+   ````
+3. **Install Ollama:**
    - Visit [Ollama's official website](https://ollama.ai) for installation instructions
    - Or follow platform-specific installation guides
 
-3. **Set up the AI model:**
+4. **Set up the AI model:**
    ```bash
    # Pull the Gemma model
    ollama pull hf.co/unsloth/gemma-3-4b-it-GGUF:Q8_0
