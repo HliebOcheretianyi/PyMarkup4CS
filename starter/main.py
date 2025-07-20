@@ -3,6 +3,10 @@ import sys
 from BasicClasses import SentenceTransformerEmbeddingFunction, OllamaLLM
 from paths import DATA_FOLDER, PROCESSED_DATA_FOLDER, MODELS_FOLDER, ML_FOLDER
 import chromadb
+from FlagEmbedding import FlagReranker
+
+import warnings
+warnings.filterwarnings("ignore")
 
 
 class RAG:
@@ -19,16 +23,30 @@ class RAG:
         print('Getting collection...')
         self.collection = self.client.get_collection(name=collection_name, embedding_function=self.embedding_f)
         print('Done')
+        print('Building a reranker...')
+        self.reranker  = FlagReranker('BAAI/bge-reranker-v2-m3', use_fp16=True, cache_dir=f'{ML_FOLDER}/bge-reranker-v2-m3')
+        print('Done')
         print('Connecting to Ollama...')
         self.llm = OllamaLLM(model_name=ollama_model, base_url=ollama_basic_url)
         print('Done')
 
-    def get_documents(self, query, n=10):
-        return self.collection.query(query_texts=[query], n_results=n)
+    def get_documents(self, query, n=5):
+        temp = self.collection.query(query_texts=query, n_results=n*6)
+        pairs = [[query, temp['documents'][0][i]] for i in range(20)]
+        new_scores = self.reranker.compute_score(pairs, normalize=True)
+
+        result = list(zip(
+            temp['ids'][0],
+            temp['metadatas'][0],
+            temp['documents'][0],
+            new_scores
+        ))
+        result.sort(key=lambda x: x[3], reverse=True)
+        return result[:7]
 
     def prompt_generator(self, query, retrieved_docs):
-        context = "\n\n".join([
-            f'Document {i+1}: \n {doc}' for i, doc in enumerate(retrieved_docs['documents'][0])]
+        context = "\n\n".join(
+            f'Document {i + 1}: \n {doc[2]}' for i, doc in enumerate(retrieved_docs)
         )
 
         prompt = '\n'.join([
@@ -36,6 +54,8 @@ class RAG:
                 """You are a senior C# programmer that writes code based on the provided context.
 
                 Instructions:
+                - All classes you use are alredy declared and you can't make up new
+                - start with "__Result = "
                 - Read the provided context carefully
                 - If multiple documents are provided, synthesize information from all relevant sources
                 - Use only the information provided in the context
@@ -78,9 +98,9 @@ if __name__ == '__main__':
         while question == '':
             question = input('--------------------------\n'
                              'What would you like to do?\n'
-                             '(/bye for stopping)\n')
+                             '(/bye for stopping)\n').lower().strip()
             if question == '/bye':
-                sys.exit(0)
+                break
             result = rag.invoke(question)
             print("\n" + "=" * 50)
             print("RESULT:")
@@ -90,5 +110,6 @@ if __name__ == '__main__':
 
 # TODO error handling
 # notTODO fine-tuning
-# TODO BGE reranking
+# DOne BGE reranking
+# TODO BM25
 # TODO C# checker
