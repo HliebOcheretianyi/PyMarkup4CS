@@ -41,6 +41,9 @@ PyMarkup4CS is a generational program designed to analyze and extract markup inf
    
    # Create a local model instance
    ollama create gemma --from hf.co/unsloth/gemma-3-4b-it-GGUF:Q8_0
+
+   # Start model
+   ollama serve
    
    # Test the model (optional)
    ollama run gemma
