@@ -18,7 +18,8 @@ class OllamaLLM:
                     "repeat_penalty" : 1.0,
                     "top_k" : 64,
                     "top_p" : 0.95,
-                    "num_predict" : 32768
+                    "num_predict" : 32768,
+                    "num_ctx" : 8192
             }
         }
 

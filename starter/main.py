@@ -1,3 +1,5 @@
+import sys
+
 from BasicClasses import SentenceTransformerEmbeddingFunction, OllamaLLM
 from paths import DATA_FOLDER, PROCESSED_DATA_FOLDER, MODELS_FOLDER, ML_FOLDER
 import chromadb
@@ -71,9 +73,22 @@ class RAG:
 if __name__ == '__main__':
 
     rag = RAG()
-    question = ''
-    while question == '':
-        question = input('--------------------------\n'
-                         'What would you like to do?\n')
-    result = rag.invoke(question)
-    print(result)
+    while True:
+        question = ''
+        while question == '':
+            question = input('--------------------------\n'
+                             'What would you like to do?\n'
+                             '(/bye for stopping)\n')
+            if question == '/bye':
+                sys.exit(0)
+            result = rag.invoke(question)
+            print("\n" + "=" * 50)
+            print("RESULT:")
+            print("=" * 50)
+            print(result)
+
+
+# TODO error handling
+# notTODO fine-tuning
+# TODO BGE reranking
+# TODO C# checker
