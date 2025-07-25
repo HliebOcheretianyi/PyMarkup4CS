@@ -4,18 +4,17 @@ A Python-based tool for generating markup analysis on insurance policies using A
 
 ## Overview
 
-PyMarkup4CS is a generational program designed to analyze and extract markup information from insurance policy documents. The tool leverages the Gemma AI model to process policy text and generate structured markup data.
+PyMarkup4CS is a generational program designed to markup information from insurance policy documents. The tool leverages the bge-m3 model to process policy text to the RAG system and generate structured markup data with unsloth Gemma 3 IT.
 
 ## Features
 
-- AI-powered insurance policy analysis
 - Automated markup generation
 - Integration with Ollama for local AI model execution
 - Jupyter notebook workflow for step-by-step processing
 
 ## Prerequisites
 - Pytorch with CUDA if you want finetuning
-- Python 3.10
+- Python 3.10+
 - Ollama installed on your system
 - Sufficient disk space for AI models (approximately 10 GB)
 - Sufficien RAM (at least 8 GB)
@@ -26,7 +25,7 @@ PyMarkup4CS is a generational program designed to analyze and extract markup inf
    ```bash
    pip install -r requirements.txt
    ```
-2. **PyTorch CUDA**
+2. **PyTorch CUDA (optional)**
    ````bash
    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
    ````
@@ -40,7 +39,7 @@ PyMarkup4CS is a generational program designed to analyze and extract markup inf
    ollama pull hf.co/unsloth/gemma-3-4b-it-GGUF:Q8_0
    
    # Create a local model instance
-   ollama create gemma --from hf.co/unsloth/gemma-3-4b-it-GGUF:Q8_0
+   ollama create gemma -f hf.co/unsloth/gemma-3-4b-it-GGUF:Q8_0
 
    # Start model
    ollama serve
@@ -52,10 +51,10 @@ PyMarkup4CS is a generational program designed to analyze and extract markup inf
 ## Usage
 
 1. **Run the notebooks in sequence:**
-   - Execute notebooks in numerical order (e.g., `01_preprocessing.ipynb`, `02_analysis.ipynb`, etc.)
+   - Execute notebooks in numerical order 
    - Each notebook contains specific instructions and documentation
 
-2. **Start the main application:**
+2. **Start the main application from the starter folder:**
    ```bash
    python main.py
    ```
