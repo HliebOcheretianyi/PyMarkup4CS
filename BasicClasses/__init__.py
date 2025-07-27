@@ -1,2 +1,3 @@
 from .Lama import OllamaLLM
 from .SentenceTransformerEmbeddingFunction import SentenceTransformerEmbeddingFunction
+from .DualQuery import DualQuery
