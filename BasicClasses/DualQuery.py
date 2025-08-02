@@ -6,15 +6,20 @@ from BasicClasses import SentenceTransformerEmbeddingFunction
 from FlagEmbedding import FlagReranker
 
 class DualQuery:
-    def __init__(self, n_class=10, n_train=50, n_valid=5):
+    def __init__(self, n_class=10, n_train=60, n_valid=8):
         self.query = ''
         self.n_class = n_class
         self.n_train = n_train
         self.n_valid = n_valid
+        print("Getting ChromaDB client...")
         self.client = chromadb.PersistentClient(path=f'{DATA_FOLDER}/chromadb')
+        print("Setting up an embedding function...")
         embedding_func=SentenceTransformerEmbeddingFunction(f'{ML_FOLDER}/BGE-m3')
+        print("Getting classes...")
         self.classes = self.client.get_collection('classes', embedding_function=embedding_func)
+        print("Getting training data...")
         self.training = self.client.get_collection('training', embedding_function=embedding_func)
+        print("Setting up a reranker...")
         self.reranker = FlagReranker('BAAI/bge-reranker-v2-m3', use_fp16=True,
                                      cache_dir=f'{ML_FOLDER}/bge-reranker-v2-m3', batch_size=4)
 

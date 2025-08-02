@@ -1,12 +1,4 @@
-import sys
-
-from BasicClasses import SentenceTransformerEmbeddingFunction, OllamaLLM, DualQuery
-from paths import DATA_FOLDER, PROCESSED_DATA_FOLDER, MODELS_FOLDER, ML_FOLDER
-import chromadb
-from FlagEmbedding import FlagReranker
-
-import warnings
-warnings.filterwarnings("ignore")
+from BasicClasses import OllamaLLM, DualQuery
 
 
 class LastFront:
@@ -20,19 +12,28 @@ class LastFront:
         print('Done')
 
     def prompt_generator(self, query, retrieved_docs):
-        context = "\n".join([
+        context_docs = "\n".join([
                                 f'Document {i + 1}: \n {doc}' for i, doc in enumerate(retrieved_docs['documents'])
-                            ] + [
-                                f'Class {i + 1}: \n {clas}' for i, clas in enumerate(retrieved_docs['classes'][0])
                             ])
+        context_classes = "\n".join([
+            f'Class {i + 1}: \n {clas}' for i, clas in enumerate(retrieved_docs['classes'][0])
+        ])
 
         prompt = '\n'.join([
         "system",
                 """You are a senior C# programmer that writes code based on the provided context.
 
+                CRITICAL REQUIREMENTS:
+                
+                - "MANDATORY: Every response must start with '__Result = ' and use method calls, never hardcoded strings like '__Result = \"text\";'"
+                - ALWAYS start with "__Result = " (this is mandatory)
+                - All classes you use are already declared and you can't make up new
+                - NEVER write: __Result = "some text"; (this is forbidden)
+                - Use .FirstOrDefault() methods to find parameters
+
                 Instructions:
                 - All classes you use are alredy declared and you can't make up new
-                - start with "__Result = "
+                - ALWAYS start with "__Result = "
                 - Read the provided context carefully
                 - If multiple documents are provided, synthesize information from all relevant sources
                 - Use only the information provided in the context
@@ -46,11 +47,16 @@ class LastFront:
                 - Write at the start (AS A COMMENT) your confidence level (High/Medium/Low)
                 - Plain code which can be straightforward pasted to the code editor
                 - No markdown formatting, just plain C# code
+                
+                WRONG EXAMPLE (Don't do this):
+                __Result = "Hardcoded text"; // BAD - don't use hardcoded strings
                 """,
-        "human",
-                f"""Context: {context}
+        "user",
+                f"""CONTEXT DOCUMENTS: {context_docs}
     
-                Request: {query}
+                CONTEXT CLASSES: {context_classes}
+    
+                TASK: {query}
             
                 Please provide a comprehensive answer following the instructions above.
             
@@ -58,9 +64,11 @@ class LastFront:
 
         return prompt
 
-    def invoke(self, query, retrieved_docs):
+    def invoke(self, query, retrieved_docs, debug_mode=False):
         print("Retrieving documents...")
         prompt = self.prompt_generator(query, retrieved_docs)
+        if debug_mode:
+            print(prompt)
         print("Now generating response\nWait for 2-3 minutes")
         answer = self.llm.generate(prompt)
         return answer
@@ -87,7 +95,7 @@ if __name__ == '__main__':
                 break
 
             retrieved_docs = dq(question)
-            result = rag.invoke(question, retrieved_docs)
+            result = rag.invoke(question, retrieved_docs, debug_mode=True)
             print("\n" + "=" * 50)
             print("RESULT:")
             print("=" * 50)

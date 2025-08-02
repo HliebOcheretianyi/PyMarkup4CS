@@ -65,18 +65,22 @@ class OllamaLLM:
             "prompt": prompt,
             "stream": False,
             "options": {
-                    "temperature": 1.0,
+                    "stop": [
+                        "<end_of_turn>",
+                        "<eos>"
+                    ],
+                    "temperature": 1.2, # play here
                     "min_p" : 0.01,
-                    "repeat_penalty" : 1.0,
-                    "top_k" : 64,
-                    "top_p" : 0.95,
+                    "repeat_penalty" : 1,
+                    "top_k" : 64,   # play here
+                    "top_p" : 0.4,  # play here
                     "num_predict" : 32768,
-                    "num_ctx" : 8192
+                    "num_ctx" : 16384
             }
         }
 
         try:
-            response = requests.post(self.api_url, json=payload, timeout=60)
+            response = requests.post(self.api_url, json=payload, timeout=300)
             response.raise_for_status()
             return response.json()["response"]
         except requests.exceptions.RequestException as e:
