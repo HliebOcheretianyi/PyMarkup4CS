@@ -24,3 +24,6 @@ def response(question: QuestionRequest):
     logger.info(f"POST /response called with: {question.question}")
     print(f"POST RESPONSE CALLED: {question.question}")
     return {"received": question.question}
+
+if __name__ == "__main__":
+    pass
