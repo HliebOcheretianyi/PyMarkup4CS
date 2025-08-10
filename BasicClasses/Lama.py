@@ -1,9 +1,12 @@
 import itertools
+import os
 import re
 import subprocess
 import atexit
 import time
 import requests
+import pandas as pd
+from paths import DATA_FOLDER
 
 class OllamaLLM:
     def __init__(self, model_name="gemma", base_url="http://localhost:11434"):
@@ -11,6 +14,7 @@ class OllamaLLM:
         self.base_url = base_url
         self.api_url = f"{base_url}/api/generate"
         self.process = None
+        self.log_table = None
 
     def __enter__(self):
         self.start()
@@ -89,31 +93,67 @@ class OllamaLLM:
 
     def validator(self, code):
         problems = []
-        forbidden_patterns = [
-            r'__Result\s*=\s*"[^"]*"(?!\s*\+)',
-            r"__Result\s*=\s*'[^']*'(?!\s*\+)",
-            r'__Result\s*=\s*"[^"]*"\s*;',
-            r"__Result\s*=\s*'[^']*'\s*;",
-        ]
+        lines = code.splitlines()
+        # forbidden_patterns = [
+        #     r'__Result\s*=\s*"[^"]*"(?!\s*\+)',
+        #     r"__Result\s*=\s*'[^']*'(?!\s*\+)",
+        #     r'__Result\s*=\s*"[^"]*"\s*;',
+        #     r"__Result\s*=\s*'[^']*'\s*;",
+        # ]
 
-        for forbidden_pattern in forbidden_patterns:
-            match = re.findall(forbidden_pattern, code, re.IGNORECASE)
-            if match:
-                problems.extend(match)
+        result_assignments = []
+        for i, line in enumerate(lines):
+            if re.search(r'__Result\s*=', line, re.IGNORECASE):
+                result_assignments.append((i, line))
+
+        # Check if the LAST __Result assignment is hardcoded
+        if result_assignments:
+            last_assignment = result_assignments[-1][1]
+
+            # Only flag if the final assignment is hardcoded (not initialization)
+            if re.search(r'__Result\s*=\s*"[^"]*"\s*;?\s*$',
+                         last_assignment) and '"---"' not in last_assignment and '""' not in last_assignment:
+                problems.append(f"Final __Result assignment is hardcoded: {last_assignment}")
 
         return len(problems) == 0, problems
 
-    def generation_with_validation(self, original_prompt, attempts=5):
+
+    def logger(self, question, response, attempts, time, success):
+        flag = os.path.isfile(f"{DATA_FOLDER}/logs_responses.csv")
+        d = {
+            'Question': question,
+            'Response': response,
+            'Attempts': attempts,
+            'Time': time,
+            'Success': success
+        }
+        if not flag: # False
+            df = pd.DataFrame(data=[d], columns=['Question', 'Response', 'Attempts', 'Time', 'Success'])
+            df.to_csv(f"{DATA_FOLDER}/logs_responses.csv", index=False)
+        if flag: # True
+            df = pd.read_csv(f"{DATA_FOLDER}/logs_responses.csv")
+            df.loc[len(df)] = d
+            df.to_csv(f"{DATA_FOLDER}/logs_responses.csv", index=False)
+        return flag
+
+    def generation_with_validation(self, original_prompt):
         prompt = original_prompt
-        for attempt in range(attempts):
-            print(f'Attempt #{attempt + 1}')
+        attempt = 1
+        while True:
+            start = time.time()
+            if attempt == 15:
+                duration = time.time() - start
+                return last_variant, attempt, duration, False
+            print(f'Attempt #{attempt}')
             variant = self.generate(prompt)
             last_variant = variant
             is_valid, problems = self.validator(variant)
 
             if is_valid:
                 print("No issues found!")
-                return last_variant
+                duration = time.time() - start
+                return last_variant, attempt, duration, True
+            attempt += 1
             print(f"Such a pity\n {problems}")
             prompt_addition = f"""
                                CRITICAL: Previous attempt failed because it used hardcoded strings. 
@@ -129,4 +169,8 @@ class OllamaLLM:
                                """
 
             prompt = original_prompt + prompt_addition
-        return variant
+
+
+if __name__ == '__main__':
+    with OllamaLLM() as model:
+        print(model.logger('1','2', '3', '4', True))

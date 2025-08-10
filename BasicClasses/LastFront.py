@@ -27,9 +27,10 @@ class LastFront:
             - ALWAYS start with "__Result = "
             - All classes you use are already declared and you can't make up new
             - NEVER write: __Result = "some text"; (this is forbidden)
-            - Use .FirstOrDefault() methods to find parameters
 
             Instructions:
+            - Write as much code as needed to solve the problem completely
+            - Don't hesitate to use multiple lines, variables, and complex logic
             - All classes you use are alredy declared and you can't make up new
             - ALWAYS start with "__Result = "
             - Read the provided context carefully
@@ -77,8 +78,8 @@ class LastFront:
         if debug_mode:
             print(prompt)
         print("Now generating response\nWait for 2-3 minutes")
-        answer = self.llm.generate(prompt)
-        return answer
+        answer, attempt, duration, success = self.llm.generation_with_validation(prompt)
+        return answer, attempt, duration, success
 
     def __del__(self):
         if hasattr(self, 'llm') and self.llm:
@@ -102,14 +103,12 @@ if __name__ == '__main__':
                 break
 
             retrieved_docs = dq(question)
-            result = rag.invoke(question, retrieved_docs, debug_mode=False)
+            result, attempt, duration, success = rag.invoke(question, retrieved_docs, debug_mode=False)
             print("\n" + "=" * 50)
             print("RESULT:")
             print("=" * 50)
+            rag.llm.logger(question, result, attempt, duration, success)
             print(result)
-            prompt = rag.prompt_generator(question, retrieved_docs)
-            print("=" * 50)
-            print(rag.llm.generation_with_validation(prompt), sep='\n')
     except KeyboardInterrupt:
         print("\nShutting down...")
     except Exception as e:
