@@ -13,10 +13,12 @@ def main():
 @app.route('/api/generator', methods=['POST'])
 def generator():
     question = flask.request.get_json()['question']
-    retrieved_docs = dq(question)
-    result, attempt, duration, success = model.invoke(question, retrieved_docs, debug_mode=False)
-    model.llm.logger(question, result, attempt, duration, success)
-    return {'result': result}
+    if question:
+        retrieved_docs = dq(question)
+        result, attempt, duration, success = model.invoke(question, retrieved_docs, debug_mode=False)
+        model.llm.logger(question, result, attempt, duration, success)
+        return {'result': result}
+    return {'result': 'No question was sent!'}, 400
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
