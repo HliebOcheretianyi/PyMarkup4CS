@@ -73,7 +73,7 @@ class OllamaLLM:
                         "<end_of_turn>",
                         "<eos>"
                     ],
-                    "temperature": 1.0,
+                    "temperature": 0.9,
                     "min_p" : 0.01,
                     "repeat_penalty" : 1.3,
                     "top_k" : 64,

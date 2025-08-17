@@ -31,9 +31,9 @@ if __name__ == '__main__':
         if 'rag' in locals():
             rag.llm.stop()
 
-# TODO error handling
+# notTODO error handling
 # notTODO fine-tuning
 # DOne BGE reranking
 
-# TODO BM25
+# notTODO BM25
 # TODO C# checker
