@@ -6,7 +6,7 @@ from BasicClasses import SentenceTransformerEmbeddingFunction
 from FlagEmbedding import FlagReranker
 
 class DualQuery:
-    def __init__(self, n_class=10, n_train=60, n_valid=8):
+    def __init__(self, n_class=10, n_train=60, n_valid=5):
         self.query = ''
         self.n_class = n_class
         self.n_train = n_train
