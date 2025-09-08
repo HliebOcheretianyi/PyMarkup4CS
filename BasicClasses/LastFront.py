@@ -31,10 +31,12 @@ class LastFront:
             
             SUPER IMPORTANT!!!
             YOU CAN USE ONLY THIS OPERATORS AND NOTHING MORE: <, ||, &&, ==, !=, >, <=, >=, +, -, *, /, =, .
-    
+            YOU CANT TAKE CODES OF DOCUMENTS like 112 234 and other, USE METHOD FirstOrDefault instead
+            YOU CANT USE THIS GetProductTypeCode()
+            DONT OVERCOMPLEX, DONT WRITE ANYTHING APART FROM ASKED
 
             Instructions:
-            - All classes you use are alredy declared and you can't make up new
+            - All classes you use are already declared and you can't make up new
             - ALWAYS start with "__Result = "
             - Read the provided context carefully
             - If multiple documents are provided, synthesize information from all relevant sources

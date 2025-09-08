@@ -7,9 +7,16 @@ import time
 import requests
 import pandas as pd
 from paths import DATA_FOLDER
+from BasicClasses import *
+
 
 class OllamaLLM:
-    def __init__(self, model_name="gemma", base_url="http://localhost:11434"):
+    """
+    hf.co/unsloth/Qwen2.5-Coder-14B-Instruct-128K-GGUF:Q2_K
+    hf.co/bartowski/open-r1_OlympicCoder-7B-GGUF:Q4_K_M
+    gemma
+    """
+    def __init__(self, model_name="hf.co/unsloth/Qwen2.5-Coder-14B-Instruct-128K-GGUF:Q2_K", base_url="http://localhost:11434"):
         self.model_name = model_name
         self.base_url = base_url
         self.api_url = f"{base_url}/api/generate"
@@ -73,13 +80,13 @@ class OllamaLLM:
                         "<end_of_turn>",
                         "<eos>"
                     ],
-                    "temperature": 0.9,
+                    "temperature": 0.3, #1
                     "min_p" : 0.01,
-                    "repeat_penalty" : 1.3,
-                    "top_k" : 64,
+                    "repeat_penalty" : 1.1, #1.3
+                    "top_k" : 20, #64
                     "top_p" : 0.95,
-                    "num_predict" : 32768,
-                    "num_ctx" : 16384
+                    "num_predict" : 16384,
+                    "num_ctx" : 32768
             }
         }
 
