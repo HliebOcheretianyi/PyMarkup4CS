@@ -8,7 +8,19 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableLambda
 import torch
 import json
+import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NumpyEncoder, self).default(obj)
+
 
 class DualQuery:
     def __init__(self, n_class=10, n_train=10, n_valid=3,
@@ -49,13 +61,12 @@ class DualQuery:
         for docs in results:
             # Iterate through each document in the list, with its rank (position in the list)
             for rank, doc in enumerate(docs):
-                # Convert the document to a string format to use as a key (assumes documents can be serialized to JSON)
-                doc_str = json.dumps(doc)
+                # Convert the document to a string format to use as a key using custom encoder
+                doc_str = json.dumps(doc, cls=NumpyEncoder, sort_keys=True)
+
                 # If the document is not yet in the fused_scores dictionary, add it with an initial score of 0
                 if doc_str not in fused_scores:
                     fused_scores[doc_str] = 0
-                # Retrieve the current score of the document, if any
-                previous_score = fused_scores[doc_str]
                 # Update the score of the document using the RRF formula: 1 / (rank + k)
                 fused_scores[doc_str] += 1 / (rank + k)
 
