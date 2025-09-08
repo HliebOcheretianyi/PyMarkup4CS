@@ -16,7 +16,7 @@ class OllamaLLM:
     hf.co/bartowski/open-r1_OlympicCoder-7B-GGUF:Q4_K_M
     gemma
     """
-    def __init__(self, model_name="hf.co/unsloth/Qwen2.5-Coder-14B-Instruct-128K-GGUF:Q2_K", base_url="http://localhost:11434"):
+    def __init__(self, model_name="gemma", base_url="http://localhost:11434"):
         self.model_name = model_name
         self.base_url = base_url
         self.api_url = f"{base_url}/api/generate"
