@@ -1,4 +1,3 @@
-import itertools
 import os
 import re
 import subprocess
@@ -7,7 +6,6 @@ import time
 import requests
 import pandas as pd
 from paths import DATA_FOLDER
-from BasicClasses import *
 
 
 class OllamaLLM:
@@ -98,6 +96,34 @@ class OllamaLLM:
             print(f"Error calling Ollama API: {e}")
             return None
 
+    def generate_pseudocode(self, original_query):
+        pseudocode_prompt = f"""
+                {original_query}
+
+                IMPORTANT: Before writing the actual C# code, first create a step-by-step pseudo code plan.
+
+                Please follow this format:
+                1. First, write your pseudo code plan inside <PSEUDOCODE> tags
+                2. Then, write the actual C# code that follows the rules
+
+                Example format:
+                <PSEUDOCODE>
+                1. Check if customer has orders
+                2. Count the number of orders
+                3. Convert count to string
+                4. Return the result
+                </PSEUDOCODE>
+
+                __Result = customer.Orders.Count().ToString();
+
+                Now provide your solution:
+                """
+
+        print("Generating pseudo code and reasoning...")
+        response = self.generate(pseudocode_prompt)
+        return response
+
+
     def validator(self, code):
         problems = []
         lines = code.splitlines()
@@ -179,5 +205,4 @@ class OllamaLLM:
 
 
 if __name__ == '__main__':
-    with OllamaLLM() as model:
-        print(model.logger('1','2', '3', '4', True))
+    pass

@@ -1,5 +1,4 @@
 import time
-from concurrent.futures import ThreadPoolExecutor
 import chromadb
 from paths import *
 from BasicClasses import SentenceTransformerEmbeddingFunction, OllamaLLM
@@ -50,6 +49,25 @@ class DualQuery:
         self.llm = OllamaLLM(model_name=ollama_model, base_url=ollama_basic_url)
         self.llm.start()
 
+    def compute_score(self, pairs, normalize=True, batch_size=2):
+        scores = []
+        for i in range(0, len(pairs), batch_size):
+            batch_pairs = pairs[i:i + batch_size]
+            inputs = [f"{pair[0]} [SEP] {pair[1]}" for pair in batch_pairs]
+            tokenized = self.tokenizer(inputs, padding=True, truncation=True,
+                                       max_length=2048, return_tensors="pt")
+            tokenized = {k: v.to(self.device) for k, v in tokenized.items()}
+
+            with torch.no_grad():
+                outputs = self.reranker(**tokenized)
+                batch_scores = outputs.logits.squeeze(-1).cpu().numpy()
+                scores.extend(batch_scores)
+
+        if normalize:
+            scores = torch.softmax(torch.tensor(scores), dim=0).numpy()
+
+        return scores
+
     def reciprocal_rank_fusion(self, results: list[list], k=60):
         """ Reciprocal_rank_fusion that takes multiple lists of ranked documents
             and an optional parameter k used in the RRF formula """
@@ -79,6 +97,25 @@ class DualQuery:
         # Return the reranked results as a list of tuples, each containing the document and its fused score
         return reranked_results
 
+    def get_documents(self, query=None):
+        if query:
+            self.query = query
+        raw = self.training.query(query_texts=[self.query], n_results=self.n_train, where={'category': 'code + explanation'})
+        pairs = [(self.query, doc) for doc in raw['documents'][0]]
+        new_scores = self.compute_score(pairs, normalize=True, batch_size=4)
+
+        scored_docs = sorted(
+            zip(raw['ids'][0], raw['metadatas'][0], raw['documents'][0], new_scores),
+            key=lambda x: x[3],
+            reverse=True
+        )
+        return scored_docs[:self.n_valid]
+
+    def get_classes(self, query=None):
+        if query:
+            self.query = query
+        return self.classes.query(query_texts=[self.query], n_results=self.n_class, where={'category': 'classes'})
+
     def rag_fusion(self, question):
         template = """You are a helpful assistant that generates multiple search queries based on a single input query. \n
         Generate multiple search queries related to: {question} \n
@@ -92,7 +129,7 @@ class DualQuery:
             lambda queries: [self.get_documents(q) for q in queries]
         )
         classes_runnable = RunnableLambda(
-            lambda queries: [self.get_classes(q) for q in queries]
+            lambda queries: [result['documents'][0] for q in queries for result in [self.get_classes(q)]]
         )
 
         rrf_runnable = RunnableLambda(lambda results: self.reciprocal_rank_fusion(results))
@@ -112,59 +149,17 @@ class DualQuery:
 
         return docs, classes
 
-    def compute_score(self, pairs, normalize=True, batch_size=2):
-        scores = []
-        for i in range(0, len(pairs), batch_size):
-            batch_pairs = pairs[i:i + batch_size]
-            inputs = [f"{pair[0]} [SEP] {pair[1]}" for pair in batch_pairs]
-            tokenized = self.tokenizer(inputs, padding=True, truncation=True,
-                                       max_length=2048, return_tensors="pt")
-            tokenized = {k: v.to(self.device) for k, v in tokenized.items()}
-
-            with torch.no_grad():
-                outputs = self.reranker(**tokenized)
-                batch_scores = outputs.logits.squeeze(-1).cpu().numpy()
-                scores.extend(batch_scores)
-
-        if normalize:
-            scores = torch.softmax(torch.tensor(scores), dim=0).numpy()
-
-        return scores
-
     def __call__(self, query):
         self.query = query.strip()
         try:
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                future_documents = executor.submit(self.get_documents)
-                classes_future = executor.submit(self.get_classes)
-                documents = future_documents.result()
-                classes = classes_future.result()
-                return {
-                    'documents': [doc[2] for doc in documents],
-                    'classes': classes['documents'],
-                    'query': query
-                }
+            documents, classes = self.rag_fusion(query)
+            return {
+                'documents': [doc[0][2] for doc in documents],
+                'classes': [cla for cla, score in classes],
+                'query': query
+            }
         except Exception as e:
             raise RuntimeError(f"Failed to execute query '{query}': {str(e)}") from e
-
-    def get_documents(self, query=None):
-        if query:
-            self.query = query
-        raw = self.training.query(query_texts=[self.query], n_results=self.n_train, where={'category': 'code + explanation'})
-        pairs = [(self.query, doc) for doc in raw['documents'][0]]
-        new_scores = self.compute_score(pairs, normalize=True, batch_size=4)
-
-        scored_docs = sorted(
-            zip(raw['ids'][0], raw['metadatas'][0], raw['documents'][0], new_scores),
-            key=lambda x: x[3],
-            reverse=True
-        )
-        return scored_docs[:self.n_valid]
-
-    def get_classes(self, query=None):
-        if query:
-            self.query = query
-        return self.classes.query(query_texts=[self.query], n_results=self.n_class, where={'category': 'classes'})
 
     def benchmark_batch_sizes(self, sizes=[1, 2, 4, 8, 12, 16, 24, 32, 48, 64]):
         results = {}
@@ -186,9 +181,11 @@ if __name__ == '__main__':
 
     for doc in result['documents']:
         print(doc)
+        print("\n")
     print('-------------------------')
-    for clas in result['classes'][0]:
+    for clas in result['classes']:
         print(clas)
+        print("\n")
 
     end = time.time()
     print(f"Execution time: {end - start:.2f} seconds")

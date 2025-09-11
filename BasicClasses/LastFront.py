@@ -74,7 +74,7 @@ class LastFront:
             f'Document {i + 1}: \n {doc}' for i, doc in enumerate(retrieved_docs['documents'])
         ])
         context_classes = "\n".join([
-            f'Class {i + 1}: \n {clas}' for i, clas in enumerate(retrieved_docs['classes'][0])
+            f'Class {i + 1}: \n {clas}' for i, clas in enumerate(retrieved_docs['classes'])
         ])
 
         prompt = self.prompt_template.format(
@@ -116,12 +116,15 @@ if __name__ == '__main__':
                 break
 
             retrieved_docs = dq(question)
-            result, attempt, duration, success = rag.invoke(question, retrieved_docs, debug_mode=True)
-            print("\n" + "=" * 50)
-            print("RESULT:")
-            print("=" * 50)
-            rag.llm.logger(question, result, attempt, duration, success)
-            print(result)
+            prompt = rag.prompt_generator(question, retrieved_docs)
+            pseudo = rag.llm.generation_with_validation(prompt)
+            print(pseudo)
+            # result, attempt, duration, success = rag.invoke(question, retrieved_docs, debug_mode=True)
+            # print("\n" + "=" * 50)
+            # print("RESULT:")
+            # print("=" * 50)
+            # rag.llm.logger(question, result, attempt, duration, success)
+            # print(result)
     except KeyboardInterrupt:
         print("\nShutting down...")
     except Exception as e:

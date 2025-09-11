@@ -1,5 +1,5 @@
-from .Lama import OllamaLLM
 from .SentenceTransformerEmbeddingFunction import SentenceTransformerEmbeddingFunction
+from .NER import SimpleGrammarNER
+from .Lama import OllamaLLM
 from .DualQuery import DualQuery
 from .LastFront import LastFront
-from .NER import SimpleGrammarNER

@@ -1,7 +1,5 @@
 import spacy
 import pickle
-from spacy import displacy
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from spacy.lang.uk.stop_words import STOP_WORDS
 import pandas as pd
