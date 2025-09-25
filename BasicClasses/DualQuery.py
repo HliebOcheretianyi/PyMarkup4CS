@@ -1,7 +1,7 @@
 import time
 import chromadb
 from paths import *
-from BasicClasses import SentenceTransformerEmbeddingFunction, OllamaLLM
+from BasicClasses import SentenceTransformerEmbeddingFunction, OllamaLLM, SimpleGrammarNER
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableLambda
@@ -29,6 +29,10 @@ class DualQuery:
         self.n_class = n_class
         self.n_train = n_train
         self.n_valid = n_valid
+
+        print("Setting up NER...")
+        self.ner = SimpleGrammarNER()
+
         print("Getting ChromaDB client...")
         self.client = chromadb.PersistentClient(path=f'{DATA_FOLDER}/chromadb')
         print("Setting up an embedding function...")
@@ -48,6 +52,18 @@ class DualQuery:
             self.reranker.half()
         self.llm = OllamaLLM(model_name=ollama_model, base_url=ollama_basic_url)
         self.llm.start()
+
+    def analyze_query_for_codes(self, query):
+        try:
+            entities = self.ner.extract_entities(query)
+            document_codes = [entity[0] for entity in entities if entity[1] == "DOCUMENT CODE"]
+            has_codes = len(document_codes) > 0
+
+            print(f"NER Analysis: Found {len(document_codes)} document codes: {document_codes}")
+            return has_codes, document_codes
+        except Exception as e:
+            print(f"NER analysis failed: {e}, defaulting to no codes")
+            return False, []
 
     def compute_score(self, pairs, normalize=True, batch_size=2):
         scores = []
@@ -69,9 +85,6 @@ class DualQuery:
         return scores
 
     def reciprocal_rank_fusion(self, results: list[list], k=60):
-        """ Reciprocal_rank_fusion that takes multiple lists of ranked documents
-            and an optional parameter k used in the RRF formula """
-
         # Initialize a dictionary to hold fused scores for each unique document
         fused_scores = {}
 
@@ -116,12 +129,37 @@ class DualQuery:
             self.query = query
         return self.classes.query(query_texts=[self.query], n_results=self.n_class, where={'category': 'classes'})
 
-    def rag_fusion(self, question):
-        template = """You are a helpful assistant that generates multiple search queries based on a single input query. \n
-        Generate multiple search queries related to: {question} \n
-        Output (4 queries):"""
+    def generate_scenario_specific_queries(self, question, has_codes=False, codes=None):
+        if has_codes:
+            # Code scenario - generate queries that focus on specific document codes
+            template = """You are a helpful assistant that generates multiple search queries for finding code examples with specific document codes.
 
-        fusion = PromptTemplate.from_template(template)
+            The user mentioned these document codes: {codes}
+
+            Generate multiple search queries related to: {question}
+            Focus on finding examples that use these specific codes.
+
+            Output (4 queries):"""
+
+            fusion = PromptTemplate.from_template(template)
+            prompt_input = {"question": question, "codes": ", ".join(codes)}
+        else:
+            # Empty scenario - generate general queries without specific codes
+            template = """You are a helpful assistant that generates multiple search queries for general code examples.
+
+            Generate multiple search queries related to: {question}
+            Focus on general implementation patterns, do NOT mention specific document codes or numbers.
+
+            Output (4 queries):"""
+
+            fusion = PromptTemplate.from_template(template)
+            prompt_input = {"question": question}
+
+        return fusion, prompt_input
+
+    def rag_fusion(self, question, has_codes=False, codes=None):
+        fusion, prompt_input = self.generate_scenario_specific_queries(question, has_codes, codes)
+
 
         generate_runnable = RunnableLambda(lambda x: self.llm.generate(str(x)))
 
@@ -144,19 +182,25 @@ class DualQuery:
         retrieval_chain_rag_fusion_docs = generate_queries | docs_runnable | rrf_runnable
         retrieval_chain_rag_fusion_classes = generate_queries | classes_runnable | rrf_runnable
 
-        docs = retrieval_chain_rag_fusion_docs.invoke({"question": question})
-        classes = retrieval_chain_rag_fusion_classes.invoke({"question": question})
+        docs = retrieval_chain_rag_fusion_docs.invoke(prompt_input)
+        classes = retrieval_chain_rag_fusion_classes.invoke(prompt_input)
 
         return docs, classes
 
     def __call__(self, query):
         self.query = query.strip()
         try:
-            documents, classes = self.rag_fusion(query)
+            has_codes, extracted_codes = self.analyze_query_for_codes(query)
+
+            documents, classes = self.rag_fusion(query, has_codes, extracted_codes)
+
             return {
                 'documents': [doc[0][2] for doc in documents],
                 'classes': [cla for cla, score in classes],
-                'query': query
+                'query': query,
+                'has_codes': has_codes,
+                'extracted_codes': extracted_codes,
+                'scenario': 'code_scenario' if has_codes else 'empty_scenario'
             }
         except Exception as e:
             raise RuntimeError(f"Failed to execute query '{query}': {str(e)}") from e
@@ -176,16 +220,20 @@ class DualQuery:
 if __name__ == '__main__':
     start = time.time()
     dq = DualQuery()
-    result = dq("write an insurance for a group of 3 people going to the country")
 
+    # Test with codes
+    result1 = dq("виведи страхові поля для документів 211 а також 1234")
+    print("=== Test with codes ===")
+    print(f"Scenario: {result1['scenario']}")
+    print(f"Has codes: {result1['has_codes']}")
+    print(f"Extracted codes: {result1['extracted_codes']}")
 
-    for doc in result['documents']:
-        print(doc)
-        print("\n")
-    print('-------------------------')
-    for clas in result['classes']:
-        print(clas)
-        print("\n")
+    # Test without codes
+    result2 = dq("write an insurance for a group of 3 people going to the country")
+    print("\n=== Test without codes ===")
+    print(f"Scenario: {result2['scenario']}")
+    print(f"Has codes: {result2['has_codes']}")
+    print(f"Extracted codes: {result2['extracted_codes']}")
 
     end = time.time()
     print(f"Execution time: {end - start:.2f} seconds")
