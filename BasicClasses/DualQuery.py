@@ -30,18 +30,22 @@ class DualQuery:
         self.n_train = n_train
         self.n_valid = n_valid
 
-        print("Setting up NER...")
+        print(f"[INFO: {time.asctime()}] \t\tSetting up NER...")
         self.ner = SimpleGrammarNER()
-
-        print("Getting ChromaDB client...")
+        print(f"\t[INFO: {time.asctime()}] \tNER Initialized.")
+        print(f"[INFO: {time.asctime()}] \t\tGetting ChromaDB client...")
         self.client = chromadb.PersistentClient(path=f'{DATA_FOLDER}/chromadb')
-        print("Setting up an embedding function...")
+        print(f"\t[INFO: {time.asctime()}] \tChromaDB initialized.")
+        print(f"[INFO: {time.asctime()}] \t\tSetting up an embedding function...")
         embedding_func=SentenceTransformerEmbeddingFunction(f'{ML_FOLDER}/BGE-m3')
-        print("Getting classes...")
+        print(f"\t[INFO: {time.asctime()}] \tEmbedding function initialized.")
+        print(f"[INFO: {time.asctime()}] \t\tGetting classes...")
         self.classes = self.client.get_collection('classes', embedding_function=embedding_func)
-        print("Getting training data...")
+        print(f"\t[INFO: {time.asctime()}] \tClasses initialized.")
+        print(f"[INFO: {time.asctime()}] \t\tGetting training data...")
         self.training = self.client.get_collection('training', embedding_function=embedding_func)
-        print("Setting up a reranker...")
+        print(f"\t[INFO: {time.asctime()}] \tTraining data initialized.")
+        print(f"[INFO: {time.asctime()}] \t\tSetting up a reranker...")
         self.tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-reranker-v2-m3',
                                                        cache_dir=f'{ML_FOLDER}/bge-reranker-v2-m3')
         self.reranker = AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-v2-m3',
@@ -50,6 +54,7 @@ class DualQuery:
         self.reranker.to(self.device)
         if torch.cuda.is_available():
             self.reranker.half()
+        print(f"\t[INFO: {time.asctime()}] \tReranker initialized.")
         self.llm = OllamaLLM(model_name=ollama_model, base_url=ollama_basic_url)
         self.llm.start()
 
@@ -202,20 +207,49 @@ class DualQuery:
         result = queries_and_pseudo.invoke(prompt_input)
         queries, pseudocodes = result
 
-        template = """You are a helpful assistant that synthesizes multiple pseudocode plans into a single coherent implementation strategy.
+        docs = retrieval_chain_rag_fusion_docs.invoke(prompt_input)
+        classes = retrieval_chain_rag_fusion_classes.invoke(prompt_input)
 
-                        Given multiple search queries and their corresponding pseudocode plans, create a unified pseudocode that:
-                        1. Identifies common patterns across all plans
-                        2. Combines the best approaches from each
-                        3. Eliminates redundancies
-                        4. Creates a clear step-by-step plan
-                        
-                        Input pseudocodes:
-                        {pseudocodes}
-                        
-                        Task: {question}
-                        
-                        Create a single, coherent pseudocode plan that synthesizes the above approaches:"""
+        template = """
+    You are an expert code architect specializing in synthesizing multiple implementation strategies into optimal solutions.
+
+    OBJECTIVE:
+    Given multiple search queries and their corresponding pseudocode plans, create a unified, production-ready pseudocode that represents the best synthesis of all approaches.
+
+    
+    SYNTHESIS REQUIREMENTS:
+    1. Pattern Recognition: Identify and leverage common patterns across all input plans
+    2. Best Practice Selection: Extract and combine the most effective approaches from each plan
+    3. Redundancy Elimination: Remove duplicate logic and consolidate overlapping functionality
+    4. Optimization: Streamline the solution for clarity, efficiency, and maintainability
+    5. Structural Coherence: Ensure logical flow and clear step-by-step progression
+    6. You cant declare new classes or methods, only the ones you saw
+    7. All classes you use are already declared and you can't make up new
+    8. ALWAYS start with "__Result = "
+    9. Read the provided context carefully
+    
+    REFERENCE EXAMPLES:
+    The following C# implementations demonstrate the expected output quality and style:
+    
+    {docs}
+    
+    INPUT DATA:
+    Pseudocode Plans to Synthesize:
+    {pseudocodes}
+    
+    Target Task:
+    {question}
+    
+    OUTPUT REQUIREMENTS:
+    - Produce ONLY the synthesized pseudocode—no explanations, comments, or meta-discussion
+    - Use clear, descriptive variable and function names
+    - Maintain consistent indentation and structure
+    - Include logical operators and control flow statements
+    - Focus on algorithmic clarity over implementation details
+    - Ensure the pseudocode is immediately translatable to C#
+    
+    Generate the unified pseudocode now:
+    """
 
         summary_prompt = PromptTemplate.from_template(template)
 
@@ -226,13 +260,11 @@ class DualQuery:
 
         final_pseudocode = self.llm.generate(
             summary_prompt.format(
+                docs=docs,
                 pseudocodes=pseudocodes_text,
                 question=question,
             )
         )
-
-        docs = retrieval_chain_rag_fusion_docs.invoke(prompt_input)
-        classes = retrieval_chain_rag_fusion_classes.invoke(prompt_input)
 
         return docs, classes, final_pseudocode
 
@@ -280,14 +312,12 @@ if __name__ == '__main__':
     print(f"Generated pseudocode: {result1['pseudocode']}")
 
     # Test without codes
-    result2 = dq("write an insurance for a group of 3 people going to the country")
-    print("\n=== Test without codes ===")
-    print(f"Scenario: {result2['scenario']}")
-    print(f"Has codes: {result2['has_codes']}")
-    print(f"Extracted codes: {result2['extracted_codes']}")
-    print(f"Generated pseudocode: {result2['pseudocode']}")
+    # result2 = dq("write an insurance for a group of 3 people going to the country")
+    # print("\n=== Test without codes ===")
+    # print(f"Scenario: {result2['scenario']}")
+    # print(f"Has codes: {result2['has_codes']}")
+    # print(f"Extracted codes: {result2['extracted_codes']}")
+    # print(f"Generated pseudocode: {result2['pseudocode']}")
 
     end = time.time()
     print(f"Execution time: {end - start:.2f} seconds")
-# TODO fix prompt so it doesnt make a C# code
-# TODO try feeding context docs before making pseudo

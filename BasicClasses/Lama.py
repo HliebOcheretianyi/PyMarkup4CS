@@ -105,6 +105,7 @@ class OllamaLLM:
                 Please follow this format:
                 1. First, write your pseudo code plan inside <PSEUDOCODE> tags
                 dont think about robustness and error handling
+                DONT WRITE ANY REAL CODE, only pseudo
 
                 Example format:
                 <PSEUDOCODE>
@@ -117,7 +118,7 @@ class OllamaLLM:
                 Now provide your solution:
                 """
 
-        print("Generating pseudo code and reasoning...")
+        print(f"[INFO: {time.asctime()}] Generating pseudo code and reasoning...")
         response = self.generate(pseudocode_prompt)
         return response
 
