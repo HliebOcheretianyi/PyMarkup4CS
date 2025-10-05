@@ -160,7 +160,20 @@ class DualQuery:
     def rag_fusion(self, question, has_codes=False, codes=None):
         fusion, prompt_input = self.generate_scenario_specific_queries(question, has_codes, codes)
 
+        def generate_with_pseudo(x):
+            query_text = self.llm.generate(str(x))
+            queries = query_text.split('\n')
 
+            pseudocodes = []
+            for query in queries:
+                if query.strip():
+                    pseudo = self.llm.generate_pseudocode(query)
+                    pseudocodes.append({
+                        'query': query,
+                        'pseudocode': pseudo
+                    })
+            return queries, pseudocodes
+        pseudo_runnable = RunnableLambda(generate_with_pseudo)
         generate_runnable = RunnableLambda(lambda x: self.llm.generate(str(x)))
 
         docs_runnable = RunnableLambda(
@@ -172,6 +185,10 @@ class DualQuery:
 
         rrf_runnable = RunnableLambda(lambda results: self.reciprocal_rank_fusion(results))
 
+        queries_and_pseudo = (
+            fusion | pseudo_runnable
+        )
+
         generate_queries = (
                 fusion
                 | generate_runnable
@@ -182,26 +199,59 @@ class DualQuery:
         retrieval_chain_rag_fusion_docs = generate_queries | docs_runnable | rrf_runnable
         retrieval_chain_rag_fusion_classes = generate_queries | classes_runnable | rrf_runnable
 
+        result = queries_and_pseudo.invoke(prompt_input)
+        queries, pseudocodes = result
+
+        template = """You are a helpful assistant that synthesizes multiple pseudocode plans into a single coherent implementation strategy.
+
+                        Given multiple search queries and their corresponding pseudocode plans, create a unified pseudocode that:
+                        1. Identifies common patterns across all plans
+                        2. Combines the best approaches from each
+                        3. Eliminates redundancies
+                        4. Creates a clear step-by-step plan
+                        
+                        Input pseudocodes:
+                        {pseudocodes}
+                        
+                        Task: {question}
+                        
+                        Create a single, coherent pseudocode plan that synthesizes the above approaches:"""
+
+        summary_prompt = PromptTemplate.from_template(template)
+
+        pseudocodes_text = "\n\n".join([
+            f"Query {i + 1}: {item['query']}\n{item['pseudocode']}"
+            for i, item in enumerate(pseudocodes)
+        ])
+
+        final_pseudocode = self.llm.generate(
+            summary_prompt.format(
+                pseudocodes=pseudocodes_text,
+                question=question,
+            )
+        )
+
         docs = retrieval_chain_rag_fusion_docs.invoke(prompt_input)
         classes = retrieval_chain_rag_fusion_classes.invoke(prompt_input)
 
-        return docs, classes
+        return docs, classes, final_pseudocode
 
     def __call__(self, query):
         self.query = query.strip()
         try:
             has_codes, extracted_codes = self.analyze_query_for_codes(query)
 
-            documents, classes = self.rag_fusion(query, has_codes, extracted_codes)
+            documents, classes, final_pseudocode = self.rag_fusion(query, has_codes, extracted_codes)
 
             return {
                 'documents': [doc[0][2] for doc in documents],
                 'classes': [cla for cla, score in classes],
+                'pseudocode': final_pseudocode,
                 'query': query,
                 'has_codes': has_codes,
                 'extracted_codes': extracted_codes,
                 'scenario': 'code_scenario' if has_codes else 'empty_scenario'
-            }
+                    }
         except Exception as e:
             raise RuntimeError(f"Failed to execute query '{query}': {str(e)}") from e
 
@@ -227,6 +277,7 @@ if __name__ == '__main__':
     print(f"Scenario: {result1['scenario']}")
     print(f"Has codes: {result1['has_codes']}")
     print(f"Extracted codes: {result1['extracted_codes']}")
+    print(f"Generated pseudocode: {result1['pseudocode']}")
 
     # Test without codes
     result2 = dq("write an insurance for a group of 3 people going to the country")
@@ -234,6 +285,9 @@ if __name__ == '__main__':
     print(f"Scenario: {result2['scenario']}")
     print(f"Has codes: {result2['has_codes']}")
     print(f"Extracted codes: {result2['extracted_codes']}")
+    print(f"Generated pseudocode: {result2['pseudocode']}")
 
     end = time.time()
     print(f"Execution time: {end - start:.2f} seconds")
+# TODO fix prompt so it doesnt make a C# code
+# TODO try feeding context docs before making pseudo

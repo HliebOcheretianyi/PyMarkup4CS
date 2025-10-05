@@ -104,7 +104,7 @@ class OllamaLLM:
 
                 Please follow this format:
                 1. First, write your pseudo code plan inside <PSEUDOCODE> tags
-                2. Then, write the actual C# code that follows the rules
+                dont think about robustness and error handling
 
                 Example format:
                 <PSEUDOCODE>
@@ -113,8 +113,6 @@ class OllamaLLM:
                 3. Convert count to string
                 4. Return the result
                 </PSEUDOCODE>
-
-                __Result = customer.Orders.Count().ToString();
 
                 Now provide your solution:
                 """
