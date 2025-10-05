@@ -12,62 +12,107 @@ class LastFront:
         self.llm.start()
         print('Done')
 
-        self.prompt_template = PromptTemplate.from_template("""
-        system
+        # Prompt template for code scenario (when specific document codes are mentioned)
+        self.code_scenario_template = PromptTemplate.from_template("""
+                system
 
-        You are a senior C# programmer that writes code based on the provided context.
+                You are a senior C# programmer that writes code based on the provided context for SPECIFIC DOCUMENT CODES.
 
-        CRITICAL REQUIREMENTS:
-        - MANDATORY: Every response must start with '__Result = ' and use method calls, never hardcoded strings like '__Result = \"text\";'
-        - ALWAYS start with "__Result = "
-        - All classes you use are already declared and you can't make up new
-        - ALWAYS use method calls or variable references instead of raw strings.
-        - NEVER write: __Result = "some text"; (this is forbidden)
+                CRITICAL REQUIREMENTS:
+                - MANDATORY: Every response must start with '__Result = ' and use method calls, never hardcoded strings like '__Result = \"text\";'
+                - ALWAYS start with "__Result = "
+                - All classes you use are already declared and you can't make up new
+                - ALWAYS use method calls or variable references instead of raw strings.
+                - NEVER write: __Result = "some text"; (this is forbidden)
+                - YOU MUST reference the specific document codes mentioned in the query: {extracted_codes}
+                - Use methods like .FirstOrDefault() to find documents with these specific codes
 
-        SUPER IMPORTANT!!!
-        YOU CAN USE ONLY THIS OPERATORS AND NOTHING MORE: <, ||, &&, ==, !=, >, <=, >=, +, -, *, /, =, .
-        YOU CANT TAKE CODES OF DOCUMENTS like 112 234 and other, USE METHOD FirstOrDefault instead
-        YOU CANT USE THIS GetProductTypeCode()
-        DONT OVERCOMPLEX, DONT WRITE ANYTHING APART FROM ASKED
+                SUPER IMPORTANT!!!
+                YOU CAN USE ONLY THIS OPERATORS AND NOTHING MORE: <, ||, &&, ==, !=, >, <=, >=, +, -, *, /, =, .
+                YOU CAN reference specific document codes like {extracted_codes} using FirstOrDefault or similar methods
+                DONT OVERCOMPLEX, DONT WRITE ANYTHING APART FROM ASKED
 
-        Instructions:
-        - All classes you use are already declared and you can't make up new
-        - ALWAYS start with "__Result = "
-        - Read the provided context carefully
-        - If multiple documents are provided, synthesize information from all relevant sources
-        - Use only the information provided in the context
-        - If the context doesn't contain enough information, say so and then try to write what you can
-        - Be accurate and cite specific parts of the context when possible
-        - Dont't use LINQ
+                Instructions:
+                - All classes you use are already declared and you can't make up new
+                - ALWAYS start with "__Result = "
+                - Read the provided context carefully
+                - Focus on the specific document codes: {extracted_codes}
+                - Use only the information provided in the context
+                - If the context doesn't contain enough information, say so and then try to write what you can
+                - Be accurate and cite specific parts of the context when possible
+                - Don't use LINQ
 
-        Response format:
-        - Plain code which can be straightforward pasted to the code editor
-        - No markdown formatting, just plain C# code
+                Response format:
+                - Plain code which can be straightforward pasted to the code editor
+                - No markdown formatting, just plain C# code
+                user
 
-        CORRECT EXAMPLES:
-        __Result = customer.Orders.Count().ToString();
-        __Result = policy.Premium.ToString("N2");
-        __Result = items.Sum(x => x.Amount).ToString("C");
+                CONTEXT DOCUMENTS: 
+                {context_docs}
 
-        WRONG EXAMPLES (NEVER DO THIS):
-        __Result = "Some text"; // FORBIDDEN - hardcoded string
-        __Result = "123"; // FORBIDDEN - hardcoded number as string
-        __Result = "Customer Name"; // FORBIDDEN - any hardcoded text
-        __Result = "Hardcoded text"; // BAD - don't use hardcoded strings
+                CONTEXT CLASSES: 
+                {context_classes}
 
-        user
+                TASK: {question}
+                SPECIFIC CODES TO USE: {extracted_codes}
 
-        CONTEXT DOCUMENTS: 
-        {context_docs}
+                Please provide code that specifically handles these document codes: {extracted_codes}
 
-        CONTEXT CLASSES: 
-        {context_classes}
+                Answer:""")
 
-        TASK: {question}
+        # Prompt template for empty scenario (when no specific codes are mentioned)
+        self.empty_scenario_template = PromptTemplate.from_template("""
+                system
 
-        Please provide a comprehensive answer following the instructions above.
+                You are a senior C# programmer that writes GENERAL code based on the provided context.
 
-        Answer:""")
+                CRITICAL REQUIREMENTS:
+                - MANDATORY: Every response must start with '__Result = ' and use method calls, never hardcoded strings like '__Result = \"text\";'
+                - ALWAYS start with "__Result = "
+                - All classes you use are already declared and you can't make up new
+                - ALWAYS use method calls or variable references instead of raw strings.
+                - NEVER write: __Result = "some text"; (this is forbidden)
+                - DO NOT reference specific document codes or numbers
+                - Write GENERAL implementation that works for any documents
+                - Use generic property access and method calls
+
+                SUPER IMPORTANT!!!
+                YOU CAN USE ONLY THIS OPERATORS AND NOTHING MORE: <, ||, &&, ==, !=, >, <=, >=, +, -, *, /, =, .
+                DO NOT reference specific document codes like 211, 212, etc.
+                DONT OVERCOMPLEX, DONT WRITE ANYTHING APART FROM ASKED
+
+                Instructions:
+                - All classes you use are already declared and you can't make up new
+                - ALWAYS start with "__Result = "
+                - Read the provided context carefully
+                - Write GENERAL code that doesn't depend on specific document codes
+                - Use only the information provided in the context
+                - If the context doesn't contain enough information, say so and then try to write what you can
+                - Be accurate and cite specific parts of the context when possible
+                - Don't use LINQ
+
+                Response format:
+                - Plain code which can be straightforward pasted to the code editor
+                - No markdown formatting, just plain C# code
+
+                WRONG EXAMPLES (NEVER DO THIS):
+                __Result = "Some text"; // FORBIDDEN - hardcoded string
+                __Result = documents.FirstOrDefault(x => x.Code == "211"); // FORBIDDEN - specific code reference
+                __Result = "211"; // FORBIDDEN - specific code as string
+
+                user
+
+                CONTEXT DOCUMENTS: 
+                {context_docs}
+
+                CONTEXT CLASSES: 
+                {context_classes}
+
+                TASK: {question}
+
+                Please provide GENERAL code that works for any documents without referencing specific codes.
+
+                Answer:""")
 
     def prompt_generator(self, query, retrieved_docs):
         context_docs = "\n".join([
@@ -77,11 +122,23 @@ class LastFront:
             f'Class {i + 1}: \n {clas}' for i, clas in enumerate(retrieved_docs['classes'])
         ])
 
-        prompt = self.prompt_template.format(
-            context_docs=context_docs,
-            context_classes=context_classes,
-            question=query
-        )
+        if retrieved_docs.get('has_codes', False):
+            print(f"Using CODE SCENARIO template with codes: {retrieved_docs['extracted_codes']}")
+            template = self.code_scenario_template
+            prompt = template.format(
+                context_docs=context_docs,
+                context_classes=context_classes,
+                question=query,
+                extracted_codes=retrieved_docs['extracted_codes']
+            )
+        else:
+            print("Using EMPTY SCENARIO template (general implementation)")
+            template = self.empty_scenario_template
+            prompt = template.format(
+                context_docs=context_docs,
+                context_classes=context_classes,
+                question=query
+            )
 
         return prompt
 
@@ -89,7 +146,11 @@ class LastFront:
         print("Retrieving documents...")
         prompt = self.prompt_generator(query, retrieved_docs)
         if debug_mode:
+            print("=" * 50)
+            print("GENERATED PROMPT:")
+            print("=" * 50)
             print(prompt)
+            print("=" * 50)
         print("Now generating response\nWait for 2-3 minutes")
         answer, attempt, duration, success = self.llm.generation_with_validation(prompt)
         return answer, attempt, duration, success
@@ -103,6 +164,7 @@ if __name__ == '__main__':
     try:
         dq = DualQuery()
         rag = LastFront()
+
         while True:
             question = ''
             while question == '':
@@ -115,16 +177,20 @@ if __name__ == '__main__':
             if question == '/bye':
                 break
 
+            # Get retrieval results with scenario information
             retrieved_docs = dq(question)
-            prompt = rag.prompt_generator(question, retrieved_docs)
-            pseudo = rag.llm.generation_with_validation(prompt)
-            print(pseudo)
-            # result, attempt, duration, success = rag.invoke(question, retrieved_docs, debug_mode=True)
-            # print("\n" + "=" * 50)
-            # print("RESULT:")
-            # print("=" * 50)
-            # rag.llm.logger(question, result, attempt, duration, success)
-            # print(result)
+
+            print(f"\n=== SCENARIO DETECTED: {retrieved_docs['scenario'].upper()} ===")
+            print(f"Has codes: {retrieved_docs['has_codes']}")
+            if retrieved_docs['has_codes']:
+                print(f"Extracted codes: {retrieved_docs['extracted_codes']}")
+
+            result, attempt, duration, success = rag.invoke(question, retrieved_docs, debug_mode=True)
+            print("\n" + "=" * 50)
+            print("RESULT:")
+            print("=" * 50)
+            rag.llm.logger(question, result, attempt, duration, success)
+            print(result)
     except KeyboardInterrupt:
         print("\nShutting down...")
     except Exception as e:
