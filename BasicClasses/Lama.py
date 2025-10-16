@@ -69,6 +69,7 @@ class OllamaLLM:
             return False
 
     def generate(self, prompt):
+        start = time.time()
         payload = {
             "model": self.model_name,
             "prompt": prompt,
@@ -88,13 +89,18 @@ class OllamaLLM:
             }
         }
 
+        attempt = 1
+
+
         try:
             response = requests.post(self.api_url, json=payload, timeout=300)
             response.raise_for_status()
-            return response.json()["response"]
+            end = time.time() - start
+            return response.json()["response"], attempt, end, True
         except requests.exceptions.RequestException as e:
+            end = time.time() - start
             print(f"Error calling Ollama API: {e}")
-            return None
+            return None, attempt, end, False
 
     def generate_pseudocode(self, original_query):
         pseudocode_prompt = f"""

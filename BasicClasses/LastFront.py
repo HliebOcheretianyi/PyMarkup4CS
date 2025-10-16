@@ -52,6 +52,9 @@ class LastFront:
 
                 CONTEXT CLASSES: 
                 {context_classes}
+                
+                GUESSTIMATED PSEUDOCODE:
+                {pseudocode}
 
                 TASK: {question}
                 SPECIFIC CODES TO USE: {extracted_codes}
@@ -107,6 +110,9 @@ class LastFront:
 
                 CONTEXT CLASSES: 
                 {context_classes}
+                
+                GUESSTIMATED PSEUDOCODE:
+                {pseudocode}
 
                 TASK: {question}
 
@@ -129,7 +135,8 @@ class LastFront:
                 context_docs=context_docs,
                 context_classes=context_classes,
                 question=query,
-                extracted_codes=retrieved_docs['extracted_codes']
+                extracted_codes=retrieved_docs['extracted_codes'],
+                pseudocode=retrieved_docs['pseudocode']
             )
         else:
             print("Using EMPTY SCENARIO template (general implementation)")
@@ -137,7 +144,8 @@ class LastFront:
             prompt = template.format(
                 context_docs=context_docs,
                 context_classes=context_classes,
-                question=query
+                question=query,
+                pseudocode=retrieved_docs['pseudocode']
             )
 
         return prompt
@@ -152,7 +160,8 @@ class LastFront:
             print(prompt)
             print("=" * 50)
         print("Now generating response\nWait for 2-3 minutes")
-        answer, attempt, duration, success = self.llm.generation_with_validation(prompt)
+        # answer, attempt, duration, success = self.llm.generation_with_validation(prompt)
+        answer, attempt, duration, success = self.llm.generate(prompt)
         return answer, attempt, duration, success
 
     def __del__(self):
@@ -161,40 +170,25 @@ class LastFront:
 
 
 if __name__ == '__main__':
-    try:
-        dq = DualQuery()
-        rag = LastFront()
+    dq = DualQuery()
+    rag = LastFront()
 
-        while True:
-            question = ''
-            while question == '':
-                question = input('--------------------------\n'
-                                 'What would you like to do?\n'
-                                 '(/bye for stopping)\n').lower().strip()
-                if question == '/bye':
-                    break
+    question = 'вивести дату початку дії в документі 123'
 
-            if question == '/bye':
-                break
 
-            # Get retrieval results with scenario information
-            retrieved_docs = dq(question)
+    # Get retrieval results with scenario information
+    retrieved_docs = dq(question)
 
-            print(f"\n=== SCENARIO DETECTED: {retrieved_docs['scenario'].upper()} ===")
-            print(f"Has codes: {retrieved_docs['has_codes']}")
-            if retrieved_docs['has_codes']:
-                print(f"Extracted codes: {retrieved_docs['extracted_codes']}")
+    print(f"\n=== SCENARIO DETECTED: {retrieved_docs['scenario'].upper()} ===")
+    print(f"Has codes: {retrieved_docs['has_codes']}")
+    if retrieved_docs['has_codes']:
+        print(f"Extracted codes: {retrieved_docs['extracted_codes']}")
 
-            result, attempt, duration, success = rag.invoke(question, retrieved_docs, debug_mode=True)
-            print("\n" + "=" * 50)
-            print("RESULT:")
-            print("=" * 50)
-            rag.llm.logger(question, result, attempt, duration, success)
-            print(result)
-    except KeyboardInterrupt:
-        print("\nShutting down...")
-    except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        if 'rag' in locals():
-            rag.llm.stop()
+    result, attempt, duration, success = rag.invoke(question, retrieved_docs, debug_mode=True)
+    print("\n" + "=" * 50)
+    print("RESULT:")
+    print("=" * 50)
+    rag.llm.logger(question, result, attempt, duration, success)
+    print(result)
+
+    rag.llm.stop()

@@ -166,7 +166,7 @@ class DualQuery:
         fusion, prompt_input = self.generate_scenario_specific_queries(question, has_codes, codes)
 
         def generate_with_pseudo(x):
-            query_text = self.llm.generate(str(x))
+            query_text, temp1, temp2, temp3 = self.llm.generate(str(x))
             queries = query_text.split('\n')
 
             pseudocodes = []
@@ -178,6 +178,7 @@ class DualQuery:
                         'pseudocode': pseudo
                     })
             return queries, pseudocodes
+
         pseudo_runnable = RunnableLambda(generate_with_pseudo)
         generate_runnable = RunnableLambda(lambda x: self.llm.generate(str(x)))
 
@@ -191,12 +192,19 @@ class DualQuery:
         rrf_runnable = RunnableLambda(lambda results: self.reciprocal_rank_fusion(results))
 
         queries_and_pseudo = (
-            fusion | pseudo_runnable
+                fusion | pseudo_runnable
         )
+
+        def debug_type(x):
+            print("[DEBUG] Type before split:", type(x))
+            print("[DEBUG] Value before split:", x)
+            return x
 
         generate_queries = (
                 fusion
                 | generate_runnable
+              # | RunnableLambda(debug_type)
+                | RunnableLambda(lambda out: out[0] if isinstance(out, tuple) else out)
                 | StrOutputParser()
                 | (lambda x: x.split("\n"))
         )
@@ -246,7 +254,8 @@ class DualQuery:
     - Maintain consistent indentation and structure
     - Include logical operators and control flow statements
     - Focus on algorithmic clarity over implementation details
-    - Ensure the pseudocode is immediately translatable to C#
+    - CANT DEPEND ON LINQ
+    - YOU CAN'T WRITE DIRECTLY ON C#
     
     Generate the unified pseudocode now:
     """
